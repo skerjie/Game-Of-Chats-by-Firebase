@@ -16,6 +16,7 @@
 		F1A6ED721E32788A00D3E39E /* LoginController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A6ED711E32788A00D3E39E /* LoginController.swift */; };
 		F1EAF7D01E3400C100C2ABE2 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F1EAF7CF1E3400C100C2ABE2 /* GoogleService-Info.plist */; };
 		F1EAF7D21E34F91800C2ABE2 /* NewMessageController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1EAF7D11E34F91800C2ABE2 /* NewMessageController.swift */; };
+		F1EAF7D51E35007800C2ABE2 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1EAF7D41E35007800C2ABE2 /* User.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +33,7 @@
 		F1A6ED711E32788A00D3E39E /* LoginController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LoginController.swift; sourceTree = "<group>"; };
 		F1EAF7CF1E3400C100C2ABE2 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		F1EAF7D11E34F91800C2ABE2 /* NewMessageController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NewMessageController.swift; sourceTree = "<group>"; };
+		F1EAF7D41E35007800C2ABE2 /* User.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -84,6 +86,7 @@
 		F1A6ED5C1E325E3100D3E39E /* GameOfChats */ = {
 			isa = PBXGroup;
 			children = (
+				F1EAF7D31E35005B00C2ABE2 /* Model */,
 				F1A6ED731E327D7200D3E39E /* Controllers */,
 				F1A6ED5D1E325E3100D3E39E /* AppDelegate.swift */,
 				F1A6ED611E325E3100D3E39E /* Main.storyboard */,
@@ -98,11 +101,19 @@
 		F1A6ED731E327D7200D3E39E /* Controllers */ = {
 			isa = PBXGroup;
 			children = (
+				F1A6ED711E32788A00D3E39E /* LoginController.swift */,
 				F1A6ED5F1E325E3100D3E39E /* MessageController.swift */,
 				F1EAF7D11E34F91800C2ABE2 /* NewMessageController.swift */,
-				F1A6ED711E32788A00D3E39E /* LoginController.swift */,
 			);
 			name = Controllers;
+			sourceTree = "<group>";
+		};
+		F1EAF7D31E35005B00C2ABE2 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				F1EAF7D41E35007800C2ABE2 /* User.swift */,
+			);
+			name = Model;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -233,6 +244,7 @@
 				F1EAF7D21E34F91800C2ABE2 /* NewMessageController.swift in Sources */,
 				F1A6ED601E325E3100D3E39E /* MessageController.swift in Sources */,
 				F1A6ED721E32788A00D3E39E /* LoginController.swift in Sources */,
+				F1EAF7D51E35007800C2ABE2 /* User.swift in Sources */,
 				F1A6ED5E1E325E3100D3E39E /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
