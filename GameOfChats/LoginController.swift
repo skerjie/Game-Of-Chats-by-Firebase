@@ -123,46 +123,7 @@ class LoginController: UIViewController {
     
   }
   
-  // MARK: - обработка нажатия кнопки Регистрация
-  func handleRegistered() {
     
-    guard let email = emailTextField.text, let password = passwordTextField.text, let name = nameTextField.text else {
-      print("Form not valid")
-      return
-    }
-    
-    FIRAuth.auth()?.createUser(withEmail: email, password: password, completion: { (user: FIRUser?, error) in
-      
-      if error != nil {
-        print(error?.localizedDescription)
-        return
-      }
-      
-      guard let uid = user?.uid else {
-        return
-      }
-      
-      // successfully authenticcate
-      
-      // MARK: - коннектимся к database FIRDatabase
-      let ref = FIRDatabase.database().reference(fromURL: "https://gameofchats-35317.firebaseio.com/")
-      let userReference = ref.child("users").child(uid)
-      let values = ["name" : name, "email" : email]
-      userReference.updateChildValues(values, withCompletionBlock: { (err, ref) in
-        
-        if err != nil {
-          print(err?.localizedDescription)
-          return
-        }
-        
-        self.dismiss(animated: true, completion: nil)
-        
-      })
-      
-      
-    })
-  }
-  
   
   // MARK: - создаем TextField nameTextField
   let nameTextField : UITextField = {
@@ -213,11 +174,14 @@ class LoginController: UIViewController {
     let imageView = UIImageView()
     imageView.image = UIImage(named: "gameofthrones_splash")
     imageView.contentMode = .scaleAspectFill
+    
+    imageView.addGestureRecognizer(UIGestureRecognizer(target: self, action: #selector(handleSelectProfileImageView))) // добавляем обработку жеста по картинке
+    imageView.isUserInteractionEnabled = true // разрешаем интеракцию с изображением
+    
     imageView.translatesAutoresizingMaskIntoConstraints = false
     return imageView
   }()
-  
-  
+
   
   // MARK: - создаем SegmentedControl
   let loginRegisteredSegmentController : UISegmentedControl = {
