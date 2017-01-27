@@ -27,7 +27,7 @@ extension UIImageView {
     URLSession.shared.dataTask(with: url!, completionHandler: { (data, response, error) in
       
       if error != nil {
-        print(error)
+        print(error ?? "Error when trying to connect to the url")
         return
       }
       

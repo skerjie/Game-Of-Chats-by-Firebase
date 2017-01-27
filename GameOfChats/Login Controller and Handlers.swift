@@ -57,7 +57,7 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
     FIRAuth.auth()?.createUser(withEmail: email, password: password, completion: { (user: FIRUser?, error) in
       
       if error != nil {
-        print(error?.localizedDescription)
+        print(error?.localizedDescription ?? "Error! Can't create user...")
         return
       }
       
@@ -69,14 +69,17 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
       // MARK: - коннектимся к storage FIRStorage чтобы загрузить профиль картинки
       
       let imageName = NSUUID().uuidString
-      let storageRef = FIRStorage.storage().reference().child("profile_images").child("\(imageName).png")
+      let storageRef = FIRStorage.storage().reference().child("profile_images").child("\(imageName).jpg")
       
-      if let uploadData = UIImagePNGRepresentation(self.profileImageView.image!) {
-        
+//      if let uploadData = UIImagePNGRepresentation(self.profileImageView.image!) {
+      if let profileImage = self.profileImageView.image, let uploadData = UIImageJPEGRepresentation(profileImage, 0.1) {
+      
+//      if let uploadData = UIImageJPEGRepresentation(self.profileImageView.image!, 0.1) {
+      
         storageRef.put(uploadData, metadata: nil, completion: { (metadata, error) in
           
           if error != nil {
-            print(error)
+            print(error ?? "Error while uploading image")
             return
           }
           
@@ -99,9 +102,16 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
     userReference.updateChildValues(values, withCompletionBlock: { (err, ref) in
       
       if err != nil {
-        print(err?.localizedDescription)
+        print(err?.localizedDescription ?? "Error in registration")
         return
       }
+      
+     // self.messageController?.fetchUserAndSetupNavBarTitle()
+     // self.messageController?.navigationItem.title = values["name"] as? String
+      
+      let user = User()
+      user.setValuesForKeys(values)
+      self.messageController?.setupNavBarWithUser(user: user )
       
       self.dismiss(animated: true, completion: nil)
       

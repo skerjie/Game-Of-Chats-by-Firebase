@@ -11,6 +11,7 @@ import Firebase
 
 class LoginController: UIViewController {
   
+  var messageController : MessageController?
   
   // MARK: - создаем по центру view сабвью (name login password)
   let inputsContainerView : UIView = {
@@ -107,16 +108,17 @@ class LoginController: UIViewController {
   func handleLogin() {
     
     guard let email = emailTextField.text, let password = passwordTextField.text else {
-      print("Form not valid")
+      print("Form is not valid")
       return
     }
     
     FIRAuth.auth()?.signIn(withEmail: email, password: password, completion: { (user, error) in
       
       if error != nil {
-        print(error)
+        print(error ?? "Can't Sign In")
         return
       }
+      self.messageController?.fetchUserAndSetupNavBarTitle()
       self.dismiss(animated: true, completion: nil)
       
     })
