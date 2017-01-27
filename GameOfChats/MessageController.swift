@@ -106,8 +106,18 @@ class MessageController: UITableViewController {
     containerVIew.centerXAnchor.constraint(equalTo: titleView.centerXAnchor).isActive = true
     containerVIew.centerYAnchor.constraint(equalTo: titleView.centerYAnchor).isActive = true
     
-    
     self.navigationItem.titleView = titleView
+    
+    titleView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showChatController)))
+    
+  }
+  
+  // обработчик нажатия на NavBarWithUser для открытия диалога
+  func showChatController() {
+    
+    // по нажатию открывается диалог
+    let chatLogController = ChatLogController(collectionViewLayout: UICollectionViewFlowLayout()) // для CollectionViewController
+    navigationController?.pushViewController(chatLogController, animated: true)
     
   }
   
