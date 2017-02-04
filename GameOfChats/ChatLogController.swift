@@ -67,13 +67,109 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     
     // navigationItem.title = "ChatLoginController"
     
-    collectionView?.contentInset = UIEdgeInsets(top: 8, left: 0, bottom: 58, right: 0) // отступ для 1го пузырька с сообщением от верхнего края
-    collectionView?.scrollIndicatorInsets = UIEdgeInsets(top: 0, left: 0, bottom: 50, right: 0) // отступ для скрола
+    collectionView?.contentInset = UIEdgeInsets(top: 8, left: 0, bottom:  8, right: 0) // отступ для 1го пузырька с сообщением от верхнего края
+    //collectionView?.scrollIndicatorInsets = UIEdgeInsets(top: 0, left: 0, bottom: 50, right: 0) // отступ для скрола
     collectionView?.alwaysBounceVertical = true // позволяем работать прокрутке
     collectionView?.backgroundColor = UIColor.white
     collectionView?.register(ChatMessageCell.self, forCellWithReuseIdentifier: cellId)
+    collectionView?.keyboardDismissMode = .interactive
     setupInputComponents()
+    setupKeyboardObservers()
     
+  }
+  
+  lazy var inputContainerView: UIView = {
+    let containerView = UIView()
+    containerView.frame = CGRect(x: 0, y: 0, width: self.view.frame.width, height: 50)
+    containerView.backgroundColor = UIColor.white
+    
+    let sendButton = UIButton(type: .system)
+    sendButton.setTitle("Send", for: .normal)
+    sendButton.translatesAutoresizingMaskIntoConstraints = false
+    sendButton.addTarget(self, action: #selector(handleSend), for: .touchUpInside)
+    
+    containerView.addSubview(sendButton)
+    
+    // нужны ширина, высота, x, y constraints
+    sendButton.rightAnchor.constraint(equalTo: containerView.rightAnchor).isActive = true
+    sendButton.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
+    sendButton.widthAnchor.constraint(equalToConstant: 80).isActive = true
+    sendButton.heightAnchor.constraint(equalTo: containerView.heightAnchor).isActive = true
+    //
+    //
+    //    let inputTextField = UITextField()
+    //    inputTextField.placeholder = "Enter message..."
+    //    inputTextField.translatesAutoresizingMaskIntoConstraints = false
+    
+    containerView.addSubview(self.inputTextField)
+    
+    // нужны ширина, высота, x, y constraints
+    self.inputTextField.leftAnchor.constraint(equalTo: containerView.leftAnchor, constant: 8).isActive = true
+    self.inputTextField.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
+    self.inputTextField.rightAnchor.constraint(equalTo: sendButton.leftAnchor).isActive = true
+    self.inputTextField.heightAnchor.constraint(equalTo: containerView.heightAnchor).isActive = true
+    
+    
+    let separatorLineView = UIView()
+    separatorLineView.backgroundColor = UIColor(red: 220/255, green: 220/255, blue: 220/255, alpha: 1)
+    separatorLineView.translatesAutoresizingMaskIntoConstraints = false
+    
+    containerView.addSubview(separatorLineView)
+    
+    // нужны ширина, высота, x, y constraints
+    separatorLineView.leftAnchor.constraint(equalTo: containerView.leftAnchor).isActive = true
+    separatorLineView.topAnchor.constraint(equalTo: containerView.topAnchor).isActive = true
+    separatorLineView.widthAnchor.constraint(equalTo: containerView.widthAnchor).isActive = true
+    separatorLineView.heightAnchor.constraint(equalToConstant: 1).isActive = true
+ 
+    
+    return containerView
+  }()
+  
+  override var inputAccessoryView: UIView? {
+    get {
+      return inputContainerView
+    }
+  }
+  
+  override var canBecomeFirstResponder: Bool {
+    get {
+      return true
+    }
+  }
+  
+  //
+  func setupKeyboardObservers() {
+    NotificationCenter.default.addObserver(self, selector: #selector(handleKeyboardWillShow), name: .UIKeyboardWillShow, object: nil)
+    NotificationCenter.default.addObserver(self, selector: #selector(handleKeyboardWillHide), name: .UIKeyboardWillHide, object: nil)
+  }
+  
+  override func viewDidDisappear(_ animated: Bool) {
+    super.viewDidDisappear(animated)
+    NotificationCenter.default.removeObserver(self) // обязательно удаляем иначе будет утеска памяти
+  }
+  
+  // получаем высоту клавиатуры и подвигаем область ввода текста вверх
+  func handleKeyboardWillShow(notification : NSNotification) {
+    let keyBoardFrame = (notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as AnyObject).cgRectValue
+    //print(keyBoardFrame?.height) получили высоту клавиатуры
+    let keyBoardDuration = (notification.userInfo?[UIKeyboardAnimationDurationUserInfoKey] as AnyObject).doubleValue // получаем длительность по]вления клавиатуры
+    
+    // подвигаем область ввода текста вверх
+    containerViewBottomAnchor?.constant = -keyBoardFrame!.height // подвигаем вверх на высоту клавиатуры
+    UIView.animate(withDuration: keyBoardDuration!) { // анимируем появление клавиатуры
+      self.view.layoutIfNeeded()
+    }
+  }
+  
+  // подвигаем область ввода текста обратно вниз
+  func handleKeyboardWillHide(notification : NSNotification) {
+    let keyBoardDuration = (notification.userInfo?[UIKeyboardAnimationDurationUserInfoKey] as AnyObject).doubleValue // получаем длительность по]вления клавиатуры
+    // подвигаем область ввода текста вниз
+    containerViewBottomAnchor?.constant = 0 // опускаем обратно вниз
+    UIView.animate(withDuration: keyBoardDuration!) { // анимируем появление клавиатуры
+      self.view.layoutIfNeeded()
+    }
   }
   
   override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -127,7 +223,8 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     if let text = messages[indexPath.item].text {
       height = estimateFrameForText(text: text).height + 20
     }
-    return CGSize(width: view.frame.width, height: height)
+    let width = UIScreen.main.bounds.width
+    return CGSize(width: width, height: height)
   }
   
   // вычисляет размер пузярька для текста в зависимости от текста
@@ -136,6 +233,8 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     let options = NSStringDrawingOptions.usesFontLeading.union(.usesLineFragmentOrigin)
     return NSString(string: text).boundingRect(with: size, options: options, attributes: [NSFontAttributeName:UIFont.systemFont(ofSize: 16)], context: nil)
   }
+  
+  var containerViewBottomAnchor : NSLayoutConstraint?
   
   // Настройка площадки для ввода текста сообщения внизу вью
   func setupInputComponents() {
@@ -148,7 +247,8 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     
     // нужны ширина, высота, x, y constraints
     containerView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
-    containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
+    containerViewBottomAnchor = containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+    containerViewBottomAnchor?.isActive = true
     containerView.widthAnchor.constraint(equalTo: view.widthAnchor).isActive = true
     containerView.heightAnchor.constraint(equalToConstant: 50).isActive = true
     
@@ -183,7 +283,7 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     separatorLineView.backgroundColor = UIColor(red: 220/255, green: 220/255, blue: 220/255, alpha: 1)
     separatorLineView.translatesAutoresizingMaskIntoConstraints = false
     
-    view.addSubview(separatorLineView)
+    containerView.addSubview(separatorLineView) // возможно вместо containerView должно быть view
     
     // нужны ширина, высота, x, y constraints
     separatorLineView.leftAnchor.constraint(equalTo: containerView.leftAnchor).isActive = true
