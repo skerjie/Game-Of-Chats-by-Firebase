@@ -110,22 +110,19 @@ class LoginController: UIViewController {
     guard let email = emailTextField.text, let password = passwordTextField.text else {
       print("Form is not valid")
       return
-    }
+}
     
     FIRAuth.auth()?.signIn(withEmail: email, password: password, completion: { (user, error) in
       
       if error != nil {
-        print(error ?? "Can't Sign In")
+       // print(error ?? "Can't Sign In")
         return
       }
       self.messageController?.fetchUserAndSetupNavBarTitle()
       self.dismiss(animated: true, completion: nil)
       
     })
-    
   }
-  
-    
   
   // MARK: - создаем TextField nameTextField
   let nameTextField : UITextField = {
@@ -168,7 +165,6 @@ class LoginController: UIViewController {
     ptf.translatesAutoresizingMaskIntoConstraints = false
     return ptf
   }()
-  
   
   
   // MARK: - создаем imageView для профиля
@@ -285,6 +281,3 @@ class LoginController: UIViewController {
  //с учетом этого view.backgroundColor выглядел бы так
  view.backgroundColor = UIColor(r: 61, g: 91, b: 151)
  */
-
-
-

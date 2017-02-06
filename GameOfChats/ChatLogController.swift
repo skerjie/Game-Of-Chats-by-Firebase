@@ -23,33 +23,28 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
   
   // функция которая получает список сообщений, то что видно на вьюхе диалог
   func observeMessages() {
-    guard let uid = FIRAuth.auth()?.currentUser?.uid else {
-      return
-    }
+    guard let uid = FIRAuth.auth()?.currentUser?.uid, let toId = user?.id else { return }
     
-    let userMessagesRef = FIRDatabase.database().reference().child("user-messages").child(uid)
+    let userMessagesRef = FIRDatabase.database().reference().child("user-messages").child(uid).child(toId)
     userMessagesRef.observe(.childAdded, with: { (snapshot) in
       let messageId = snapshot.key
       let messagesRef = FIRDatabase.database().reference().child("messages").child(messageId)
       messagesRef.observe(.value, with: { (snapshot) in
         
-        guard let dictionary = snapshot.value as? [String:AnyObject] else {
-          return
-        }
+        guard let dictionary = snapshot.value as? [String:AnyObject] else { return }
         let message = Message()
         message.setValuesForKeys(dictionary)
         
-        // проверка чтобы текст сообщения был виден только от тех и только тому кому отправил
-        if message.chatPartnerId() == self.user?.id {
-          self.messages.append(message)
-          // чтобы не упало приложение и работало в 2х патоках
-          DispatchQueue.main.async {
-            self.collectionView?.reloadData()
-          }
+//        // проверка чтобы текст сообщения был виден только от тех и только тому кому отправил
+//        if message.chatPartnerId() == self.user?.id {
+//         
+//        }
+        self.messages.append(message)
+        // чтобы не упало приложение и работало в 2х патоках
+        DispatchQueue.main.async {
+          self.collectionView?.reloadData()
         }
-        
       }, withCancel: nil)
-      
     }, withCancel: nil )
   }
   
@@ -315,10 +310,10 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
       
       self.inputTextField.text = nil
       
-      let userMessagesRef = FIRDatabase.database().reference().child("user-messages").child(fromId)
+      let userMessagesRef = FIRDatabase.database().reference().child("user-messages").child(fromId).child(toId)
       let messageId = childRef.key
       userMessagesRef.updateChildValues([messageId:1])
-      let recipientUserMessagesRef = FIRDatabase.database().reference().child("user-messages").child(toId)
+      let recipientUserMessagesRef = FIRDatabase.database().reference().child("user-messages").child(toId).child(fromId)
       recipientUserMessagesRef.updateChildValues([messageId:1])
       
     }

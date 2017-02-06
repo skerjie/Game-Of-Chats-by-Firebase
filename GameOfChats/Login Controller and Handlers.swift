@@ -61,9 +61,7 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
         return
       }
       
-      guard let uid = user?.uid else {
-        return
-      }
+      guard let uid = user?.uid else { return }
       
       // successfully authenticated
       // MARK: - коннектимся к storage FIRStorage чтобы загрузить профиль картинки

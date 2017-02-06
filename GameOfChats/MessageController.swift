@@ -10,13 +10,13 @@ import UIKit
 import Firebase
 
 class MessageController: UITableViewController {
-
+  
   var cellId = "cellId"
   
   override func viewDidLoad() {
     super.viewDidLoad()
     
-        
+    
     // MARK: - создаем кнопку на NavigationController слева
     navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Logout", style: .plain, target: self, action: #selector(handleLogout))
     
@@ -29,9 +29,7 @@ class MessageController: UITableViewController {
     tableView.register(UserCell.self, forCellReuseIdentifier: cellId)
     
     // observeMessages()
-    
-    
-    
+
   }
   
   var messages = [Message]()
@@ -39,48 +37,60 @@ class MessageController: UITableViewController {
   
   func observeUserMessages() {
     
-    guard let uid = FIRAuth.auth()?.currentUser?.uid else {
-      return
-    }
+    guard let uid = FIRAuth.auth()?.currentUser?.uid else { return }
     
     let ref = FIRDatabase.database().reference().child("user-messages").child(uid)
     ref.observe(.value, with: { (snapshot) in
       
-      let messageId = snapshot.key
-      let messageReference = FIRDatabase.database().reference().child("messages").child(messageId)
-      messageReference.observe(.value, with: { (snapshot) in
-        print(snapshot)
+      let userId = snapshot.key
+      FIRDatabase.database().reference().child("user-messages").child(uid).child(userId).observe(.childAdded, with: { (snapshot) in
         
-        if let dictionary = snapshot.value as? [String : AnyObject] {
-          let message = Message()
-          message.setValuesForKeys(dictionary)
-          // self.messages.append(message)
-          
-          if let chatPartnerId = message.chatPartnerId() {
-            self.messagesDictionary[chatPartnerId] = message
-            self.messages = Array(self.messagesDictionary.values)
-            self.messages.sort(by: { (mes1, mes2) -> Bool in
-              return (mes1.timeStamp?.intValue)! > (mes2.timeStamp?.intValue)!
-            })
-          }
-          
-          // сбрасываем таймер, для того, чтобы таблица обновлялась только раз
-          self.timer?.invalidate()
-          self.timer = Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(self.handleReloadTable), userInfo: nil, repeats: false)
+       // print(snapshot)
+        
+        let messageId = snapshot.key
+        self.fetchMessageWithMessageId(messageId: messageId)
 
-        }
-        
-      }, withCancel: nil )
-      
+      }, withCancel: nil)
+
     }, withCancel: nil)
     
   }
   
+  private func fetchMessageWithMessageId(messageId: String) {
+    let messageReference = FIRDatabase.database().reference().child("messages").child(messageId)
+    messageReference.observe(.value, with: { (snapshot) in
+      //print(snapshot)
+      
+      if let dictionary = snapshot.value as? [String : AnyObject] {
+        let message = Message()
+        message.setValuesForKeys(dictionary)
+        // self.messages.append(message)
+        
+        if let chatPartnerId = message.chatPartnerId() {
+          self.messagesDictionary[chatPartnerId] = message
+        }
+        
+        self.atempReloadOfTable()
+      }
+      
+    }, withCancel: nil )
+  }
+  
+  private func atempReloadOfTable() {
+    // сбрасываем таймер, для того, чтобы таблица обновлялась только раз
+    self.timer?.invalidate()
+    self.timer = Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(self.handleReloadTable), userInfo: nil, repeats: false)
+  }
+
   var timer : Timer?
   
   // функция обработчика таймера, для обновления таблицы
   func handleReloadTable() {
-  
+    self.messages = Array(self.messagesDictionary.values)
+    self.messages.sort(by: { (mes1, mes2) -> Bool in
+      return (mes1.timeStamp?.intValue)! > (mes2.timeStamp?.intValue)!
+    })
+    
     // чтобы приложение не упало, в фоновом потоке делаем асинхронно
     DispatchQueue.main.async {
       self.tableView.reloadData()
@@ -88,31 +98,31 @@ class MessageController: UITableViewController {
     
   }
   
-//  func observeMessages() {
-//    let ref = FIRDatabase.database().reference().child("messages")
-//    ref.observeSingleEvent(of: .childAdded, with: { (snapshot) in
-//      
-//      if let dictionary = snapshot.value as? [String : AnyObject] {
-//        let message = Message()
-//        message.setValuesForKeys(dictionary)
-//        // self.messages.append(message)
-//        
-//        if let toId = message.toId {
-//          self.messagesDictionary[toId] = message
-//          self.messages = Array(self.messagesDictionary.values)
-//          self.messages.sort(by: { (mes1, mes2) -> Bool in
-//            return (mes1.timeStamp?.intValue)! > (mes2.timeStamp?.intValue)!
-//          })
-//        }
-//        
-//        // чтобы приложение не упало в фоновом потоке делаем асинхронный запрос
-//        DispatchQueue.main.async {
-//          self.tableView.reloadData()
-//        }
-//      }
-//      
-//    }, withCancel: nil)
-//  }
+  //  func observeMessages() {
+  //    let ref = FIRDatabase.database().reference().child("messages")
+  //    ref.observeSingleEvent(of: .childAdded, with: { (snapshot) in
+  //
+  //      if let dictionary = snapshot.value as? [String : AnyObject] {
+  //        let message = Message()
+  //        message.setValuesForKeys(dictionary)
+  //        // self.messages.append(message)
+  //
+  //        if let toId = message.toId {
+  //          self.messagesDictionary[toId] = message
+  //          self.messages = Array(self.messagesDictionary.values)
+  //          self.messages.sort(by: { (mes1, mes2) -> Bool in
+  //            return (mes1.timeStamp?.intValue)! > (mes2.timeStamp?.intValue)!
+  //          })
+  //        }
+  //
+  //        // чтобы приложение не упало в фоновом потоке делаем асинхронный запрос
+  //        DispatchQueue.main.async {
+  //          self.tableView.reloadData()
+  //        }
+  //      }
+  //
+  //    }, withCancel: nil)
+  //  }
   
   override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
     return messages.count
@@ -126,15 +136,11 @@ class MessageController: UITableViewController {
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
     let message = messages[indexPath.row]
     
-    guard let chatPartnerId = message.chatPartnerId() else {
-      return
-    }
+    guard let chatPartnerId = message.chatPartnerId() else { return }
     
     let ref = FIRDatabase.database().reference().child("users").child(chatPartnerId)
     ref.observe(.value, with: { (snapshot) in
-      guard let dictionary = snapshot.value as? [String:AnyObject] else {
-        return
-      }
+      guard let dictionary = snapshot.value as? [String:AnyObject] else { return }
       
       let user = User()
       user.id = chatPartnerId
@@ -168,17 +174,13 @@ class MessageController: UITableViewController {
     }
   }
   
-  
   func fetchUserAndSetupNavBarTitle() {
     
-    guard let uid = FIRAuth.auth()?.currentUser?.uid else {
-      // если uid = nil
-      return
-    }
+    guard let uid = FIRAuth.auth()?.currentUser?.uid else { return } // если uid = nil
     FIRDatabase.database().reference().child("users").child(uid).observeSingleEvent(of: .value, with: { (snapshot) in
       
       if let dict = snapshot.value as? [String:AnyObject] {
-       // self.navigationItem.title = dict["name"] as? String
+        // self.navigationItem.title = dict["name"] as? String
         
         let user = User()
         user.setValuesForKeys(dict)
@@ -191,13 +193,12 @@ class MessageController: UITableViewController {
   
   // настраиваем NavBarWithUser с картинкой и именем
   func setupNavBarWithUser(user: User) {
-
+    
     messages.removeAll()
     messagesDictionary.removeAll()
     tableView.reloadData()
     
     observeUserMessages()
-    
     
     let titleView = UIView()
     titleView.frame = CGRect(x: 0, y: 0, width: 100, height: 40)
@@ -241,7 +242,7 @@ class MessageController: UITableViewController {
     
     self.navigationItem.titleView = titleView
     
-//    titleView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showChatController)))
+    //    titleView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showChatController)))
     
   }
   
@@ -268,6 +269,5 @@ class MessageController: UITableViewController {
     loginController.messageController = self
     present(loginController, animated: true, completion: nil)
   }
-
+  
 }
-
