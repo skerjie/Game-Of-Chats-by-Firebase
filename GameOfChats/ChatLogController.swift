@@ -9,7 +9,7 @@
 import UIKit
 import Firebase
 
-class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICollectionViewDelegateFlowLayout  {
+class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICollectionViewDelegateFlowLayout, UIImagePickerControllerDelegate, UINavigationControllerDelegate  {
   
   let cellId = "cellId"
   var messages = [Message]()
@@ -68,8 +68,8 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     collectionView?.backgroundColor = UIColor.white
     collectionView?.register(ChatMessageCell.self, forCellWithReuseIdentifier: cellId)
     collectionView?.keyboardDismissMode = .interactive
-    setupInputComponents()
-    setupKeyboardObservers()
+//    setupInputComponents()
+ //   setupKeyboardObservers()
     
   }
   
@@ -77,6 +77,21 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     let containerView = UIView()
     containerView.frame = CGRect(x: 0, y: 0, width: self.view.frame.width, height: 50)
     containerView.backgroundColor = UIColor.white
+    
+
+    let uploadImageView = UIImageView()
+    uploadImageView.image = UIImage(named: "addImage")
+    uploadImageView.isUserInteractionEnabled = true
+    uploadImageView.translatesAutoresizingMaskIntoConstraints = false
+    uploadImageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleUploadTap)))
+    containerView.addSubview(uploadImageView)
+    
+    // нужны ширина, высота, x, y constraints
+    uploadImageView.leftAnchor.constraint(equalTo: containerView.leftAnchor).isActive = true
+    uploadImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
+    uploadImageView.widthAnchor.constraint(equalToConstant: 44).isActive = true
+    uploadImageView.heightAnchor.constraint(equalToConstant: 44).isActive = true
+
     
     let sendButton = UIButton(type: .system)
     sendButton.setTitle("Send", for: .normal)
@@ -99,7 +114,7 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     containerView.addSubview(self.inputTextField)
     
     // нужны ширина, высота, x, y constraints
-    self.inputTextField.leftAnchor.constraint(equalTo: containerView.leftAnchor, constant: 8).isActive = true
+    self.inputTextField.leftAnchor.constraint(equalTo: uploadImageView.rightAnchor, constant: 8).isActive = true
     self.inputTextField.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
     self.inputTextField.rightAnchor.constraint(equalTo: sendButton.leftAnchor).isActive = true
     self.inputTextField.heightAnchor.constraint(equalTo: containerView.heightAnchor).isActive = true
@@ -120,6 +135,84 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     
     return containerView
   }()
+  
+  // обработка нажатия на картинку с вызовом pickerController
+  func handleUploadTap() {
+    let imagePicker = UIImagePickerController()
+    imagePicker.allowsEditing = true
+    imagePicker.delegate = self
+    present(imagePicker, animated: true, completion: nil)
+  }
+  
+  // метод делегата UIImagePickerControllerDelegate
+  func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+    dismiss(animated: true, completion: nil)
+  }
+  
+  // метод делегата UIImagePickerControllerDelegate выбираем картинку
+  func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
+    
+    var selectedImageFromPicker : UIImage?
+    
+    if let editedImage = info[UIImagePickerControllerEditedImage] as? UIImage{
+      selectedImageFromPicker = editedImage
+    } else if let originalImage = info[UIImagePickerControllerOriginalImage] as? UIImage {
+      selectedImageFromPicker = originalImage
+    }
+    
+    if let selectedImage = selectedImageFromPicker {
+    uploadToFirebaseStorageUsingImage(image: selectedImage)    }
+    
+    dismiss(animated: true, completion: nil)
+    
+  }
+  
+  // загрузка картинок в Firebase storage из поля чата
+  private func uploadToFirebaseStorageUsingImage(image: UIImage) {
+    let imageName = NSUUID().uuidString
+    let ref = FIRStorage.storage().reference().child("message_images").child(imageName)
+    if let uploadData = UIImageJPEGRepresentation(image, 0.2) {
+      ref.put(uploadData, metadata: nil, completion: { (metadata, error) in
+        
+        if error != nil {
+          print("Failed Upload \(error)")
+          return
+        }
+        
+        if let imageUrl = metadata?.downloadURL()?.absoluteString {
+          self.sendMessageWithImageUrl(imageUrl: imageUrl)
+        }
+        
+      })
+    }
+  }
+  
+  private func sendMessageWithImageUrl(imageUrl : String) {
+    let ref = FIRDatabase.database().reference().child("messages")
+    let childRef = ref.childByAutoId() // уникальное имя
+    let fromId = FIRAuth.auth()!.currentUser!.uid
+    let toId = user!.id!
+    let timeStamp = Int(Date().timeIntervalSince1970)
+    let values = ["imageUrl" : imageUrl, "toId" : toId, "fromId" : fromId, "timestamp" : timeStamp] as [String : Any]
+    // childRef.updateChildValues(values)
+    
+    childRef.updateChildValues(values) { (error, ref) in
+      
+      if error != nil {
+        print(error ?? "Error. Can't connect to Firebase database")
+        return
+      }
+      
+      self.inputTextField.text = nil
+      
+      let userMessagesRef = FIRDatabase.database().reference().child("user-messages").child(fromId).child(toId)
+      let messageId = childRef.key
+      userMessagesRef.updateChildValues([messageId:1])
+      let recipientUserMessagesRef = FIRDatabase.database().reference().child("user-messages").child(toId).child(fromId)
+      recipientUserMessagesRef.updateChildValues([messageId:1])
+      
+    }
+  }
   
   override var inputAccessoryView: UIView? {
     get {
@@ -178,7 +271,9 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     
     setupCell(cell: cell, message: message)
     
-    cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: message.text!).width + 32
+    if let text = message.text {
+      cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: text).width + 32
+    }
     
     return cell
   }
@@ -206,6 +301,15 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
       cell.bubbleViewRightAnchor?.isActive = true
       cell.bubbleViewLeftAnchor?.isActive = false
     }
+    
+    // картинка на синем пузыре
+    if let messageImageUrl = message.imageUrl {
+      cell.messageImageView.loadImageUsingCacheWithUrlString(urlString: messageImageUrl)
+      cell.messageImageView.isHidden = false
+      cell.bubbleView.backgroundColor = UIColor.clear
+    } else {
+      cell.messageImageView.isHidden = true
+    }
   }
   
   // для режима перевернутого экрана правильно рендерит сообщения к краям
@@ -232,61 +336,61 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
   var containerViewBottomAnchor : NSLayoutConstraint?
   
   // Настройка площадки для ввода текста сообщения внизу вью
-  func setupInputComponents() {
-    
-    let containerView = UIView()
-    containerView.backgroundColor = UIColor.white 
-    containerView.translatesAutoresizingMaskIntoConstraints = false
-    
-    view.addSubview(containerView)
-    
-    // нужны ширина, высота, x, y constraints
-    containerView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
-    containerViewBottomAnchor = containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-    containerViewBottomAnchor?.isActive = true
-    containerView.widthAnchor.constraint(equalTo: view.widthAnchor).isActive = true
-    containerView.heightAnchor.constraint(equalToConstant: 50).isActive = true
-    
-    let sendButton = UIButton(type: .system)
-    sendButton.setTitle("Send", for: .normal)
-    sendButton.translatesAutoresizingMaskIntoConstraints = false
-    sendButton.addTarget(self, action: #selector(handleSend), for: .touchUpInside)
-    
-    containerView.addSubview(sendButton)
-    
-    // нужны ширина, высота, x, y constraints
-    sendButton.rightAnchor.constraint(equalTo: containerView.rightAnchor).isActive = true
-    sendButton.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
-    sendButton.widthAnchor.constraint(equalToConstant: 80).isActive = true
-    sendButton.heightAnchor.constraint(equalTo: containerView.heightAnchor).isActive = true
+//  func setupInputComponents() {
+//    
+//    let containerView = UIView()
+//    containerView.backgroundColor = UIColor.white 
+//    containerView.translatesAutoresizingMaskIntoConstraints = false
+//    
+//    view.addSubview(containerView)
+//    
+//    // нужны ширина, высота, x, y constraints
+//    containerView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
+//    containerViewBottomAnchor = containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+//    containerViewBottomAnchor?.isActive = true
+//    containerView.widthAnchor.constraint(equalTo: view.widthAnchor).isActive = true
+//    containerView.heightAnchor.constraint(equalToConstant: 50).isActive = true
+//    
+//    let sendButton = UIButton(type: .system)
+//    sendButton.setTitle("Send", for: .normal)
+//    sendButton.translatesAutoresizingMaskIntoConstraints = false
+//    sendButton.addTarget(self, action: #selector(handleSend), for: .touchUpInside)
+//    
+//    containerView.addSubview(sendButton)
+//    
+//    // нужны ширина, высота, x, y constraints
+//    sendButton.rightAnchor.constraint(equalTo: containerView.rightAnchor).isActive = true
+//    sendButton.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
+//    sendButton.widthAnchor.constraint(equalToConstant: 80).isActive = true
+//    sendButton.heightAnchor.constraint(equalTo: containerView.heightAnchor).isActive = true
+////    
+////    
+////    let inputTextField = UITextField()
+////    inputTextField.placeholder = "Enter message..."
+////    inputTextField.translatesAutoresizingMaskIntoConstraints = false
+//    
+//    containerView.addSubview(inputTextField)
+//    
+//    // нужны ширина, высота, x, y constraints
+//    inputTextField.leftAnchor.constraint(equalTo: containerView.leftAnchor, constant: 8).isActive = true
+//    inputTextField.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
+//    inputTextField.rightAnchor.constraint(equalTo: sendButton.leftAnchor).isActive = true
+//    inputTextField.heightAnchor.constraint(equalTo: containerView.heightAnchor).isActive = true
 //    
 //    
-//    let inputTextField = UITextField()
-//    inputTextField.placeholder = "Enter message..."
-//    inputTextField.translatesAutoresizingMaskIntoConstraints = false
-    
-    containerView.addSubview(inputTextField)
-    
-    // нужны ширина, высота, x, y constraints
-    inputTextField.leftAnchor.constraint(equalTo: containerView.leftAnchor, constant: 8).isActive = true
-    inputTextField.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
-    inputTextField.rightAnchor.constraint(equalTo: sendButton.leftAnchor).isActive = true
-    inputTextField.heightAnchor.constraint(equalTo: containerView.heightAnchor).isActive = true
-    
-    
-    let separatorLineView = UIView()
-    separatorLineView.backgroundColor = UIColor(red: 220/255, green: 220/255, blue: 220/255, alpha: 1)
-    separatorLineView.translatesAutoresizingMaskIntoConstraints = false
-    
-    containerView.addSubview(separatorLineView) // возможно вместо containerView должно быть view
-    
-    // нужны ширина, высота, x, y constraints
-    separatorLineView.leftAnchor.constraint(equalTo: containerView.leftAnchor).isActive = true
-    separatorLineView.topAnchor.constraint(equalTo: containerView.topAnchor).isActive = true
-    separatorLineView.widthAnchor.constraint(equalTo: containerView.widthAnchor).isActive = true
-    separatorLineView.heightAnchor.constraint(equalToConstant: 1).isActive = true
-    
-  }
+//    let separatorLineView = UIView()
+//    separatorLineView.backgroundColor = UIColor(red: 220/255, green: 220/255, blue: 220/255, alpha: 1)
+//    separatorLineView.translatesAutoresizingMaskIntoConstraints = false
+//    
+//    containerView.addSubview(separatorLineView) // возможно вместо containerView должно быть view
+//    
+//    // нужны ширина, высота, x, y constraints
+//    separatorLineView.leftAnchor.constraint(equalTo: containerView.leftAnchor).isActive = true
+//    separatorLineView.topAnchor.constraint(equalTo: containerView.topAnchor).isActive = true
+//    separatorLineView.widthAnchor.constraint(equalTo: containerView.widthAnchor).isActive = true
+//    separatorLineView.heightAnchor.constraint(equalToConstant: 1).isActive = true
+//    
+//  }
   
   
   // обработка нажатия кнопки Send

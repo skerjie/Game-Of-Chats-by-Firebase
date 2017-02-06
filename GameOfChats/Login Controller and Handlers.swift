@@ -36,11 +36,13 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
       profileImageView.image = selectedImage
     }
     
+    dismiss(animated: true, completion: nil)
+    
   }
   
   // метод делегата
   func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-    print("Canceled")
+    //print("Canceled")
     dismiss(animated: true, completion: nil)
   }
   
