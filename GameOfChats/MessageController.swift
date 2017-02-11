@@ -62,10 +62,8 @@ class MessageController: UITableViewController {
       //print(snapshot)
       
       if let dictionary = snapshot.value as? [String : AnyObject] {
-        let message = Message()
-        message.setValuesForKeys(dictionary)
-        // self.messages.append(message)
-        
+        let message = Message(dictionary: dictionary)
+         
         if let chatPartnerId = message.chatPartnerId() {
           self.messagesDictionary[chatPartnerId] = message
         }

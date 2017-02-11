@@ -10,6 +10,8 @@
  
  class ChatMessageCell: UICollectionViewCell {
   
+  var chatLogController : ChatLogController?
+  
   let textview : UITextView = {
     
     let tv = UITextView()
@@ -18,6 +20,7 @@
     tv.backgroundColor = UIColor.clear
     tv.textColor = UIColor.white
     tv.translatesAutoresizingMaskIntoConstraints = false
+    tv.isEditable = false
     return tv
     
   }()
@@ -49,9 +52,20 @@
     imageView.layer.masksToBounds = true
     imageView.contentMode = .scaleAspectFill 
     imageView.translatesAutoresizingMaskIntoConstraints = false
+    imageView.isUserInteractionEnabled = true
+    
+    imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleZoomTap)))
+    
     return imageView
   }()
   
+  func handleZoomTap(tapGesture : UITapGestureRecognizer) {
+    if let imageView = tapGesture.view as? UIImageView {
+      self.chatLogController?.performZoomInForStartingImageView(startingImageView: imageView) // метод делегата
+    }
+    
+  }
+   
   var bubbleWidthAnchor : NSLayoutConstraint?
   var bubbleViewRightAnchor : NSLayoutConstraint?
   var bubbleViewLeftAnchor : NSLayoutConstraint?
