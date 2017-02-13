@@ -38,9 +38,6 @@ class NewMessageController: UITableViewController {
         DispatchQueue.main.async {
           self.tableView.reloadData()  // чтобы не упало приложение запускаем в параллельном потоке
         }
-        
-        
-        //      user.name = dictionary["name"]
       }
       
     }, withCancel: nil)
@@ -65,22 +62,8 @@ class NewMessageController: UITableViewController {
     // скачиваем и устанавливаем изображение профиля юзера в ячейку
     if let profileUserUrl = user.profileImageUrl {
       
-      cell.profileImageView.loadImageUsingCacheWithUrlString(urlString: profileUserUrl) 
+      cell.profileImageView.loadImageUsingCacheWithUrlString(urlString: profileUserUrl)
       
-//      let url = URL(string: profileUserUrl)
-//      URLSession.shared.dataTask(with: url!, completionHandler: { (data, response, error) in
-//        
-//        if error != nil {
-//          print(error)
-//          return
-//        }
-//        
-//        DispatchQueue.main.async {
-//          cell.profileImageView.image = UIImage(data: data!)
-//        }
-//        
-//        
-//      }).resume()
     }
     
     return cell
@@ -95,7 +78,7 @@ class NewMessageController: UITableViewController {
   
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
     dismiss(animated: true) {
-      print("Dismiss complete")
+      //print("Dismiss complete")
       let user = self.users[indexPath.row]
       self.messageController?.showChatControllerForUser(user: user)
       

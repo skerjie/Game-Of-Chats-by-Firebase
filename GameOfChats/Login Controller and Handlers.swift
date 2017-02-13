@@ -46,20 +46,18 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
     dismiss(animated: true, completion: nil)
   }
   
-  
-  
   // MARK: - обработка нажатия кнопки Регистрация
   func handleRegistered() {
     
     guard let email = emailTextField.text, let password = passwordTextField.text, let name = nameTextField.text else {
-      print("Form not valid")
+      //print("Form not valid")
       return
     }
     
     FIRAuth.auth()?.createUser(withEmail: email, password: password, completion: { (user: FIRUser?, error) in
       
       if error != nil {
-        print(error?.localizedDescription ?? "Error! Can't create user...")
+        //print(error?.localizedDescription ?? "Error! Can't create user...")
         return
       }
       
@@ -71,18 +69,17 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
       let imageName = NSUUID().uuidString
       let storageRef = FIRStorage.storage().reference().child("profile_images").child("\(imageName).jpg")
       
-//      if let uploadData = UIImagePNGRepresentation(self.profileImageView.image!) {
+      //      if let uploadData = UIImagePNGRepresentation(self.profileImageView.image!) {
       if let profileImage = self.profileImageView.image, let uploadData = UIImageJPEGRepresentation(profileImage, 0.1) {
-      
-//      if let uploadData = UIImageJPEGRepresentation(self.profileImageView.image!, 0.1) {
-      
+        
+        //      if let uploadData = UIImageJPEGRepresentation(self.profileImageView.image!, 0.1) {
+        
         storageRef.put(uploadData, metadata: nil, completion: { (metadata, error) in
           
           if error != nil {
-            print(error ?? "Error while uploading image")
+            //print(error ?? "Error while uploading image")
             return
           }
-          
           
           if let profileImageUrl = metadata?.downloadURL()?.absoluteString {
             let values = ["name" : name, "email" : email, "profileImageUrl" : profileImageUrl]
@@ -102,12 +99,12 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
     userReference.updateChildValues(values, withCompletionBlock: { (err, ref) in
       
       if err != nil {
-        print(err?.localizedDescription ?? "Error in registration")
+        //print(err?.localizedDescription ?? "Error in registration")
         return
       }
       
-     // self.messageController?.fetchUserAndSetupNavBarTitle()
-     // self.messageController?.navigationItem.title = values["name"] as? String
+      // self.messageController?.fetchUserAndSetupNavBarTitle()
+      // self.messageController?.navigationItem.title = values["name"] as? String
       
       let user = User()
       user.setValuesForKeys(values)

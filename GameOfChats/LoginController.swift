@@ -80,7 +80,6 @@ class LoginController: UIViewController {
     passwordTextFieldHeightAnchor = passwordTextField.heightAnchor.constraint(equalTo: inputsContainerView.heightAnchor, multiplier: 1/3)
     passwordTextFieldHeightAnchor?.isActive = true
     
-    
   }
   
   // MARK: - создаем кнопку loginRegisteredButton
@@ -108,14 +107,14 @@ class LoginController: UIViewController {
   func handleLogin() {
     
     guard let email = emailTextField.text, let password = passwordTextField.text else {
-      print("Form is not valid")
+      // print("Form is not valid")
       return
-}
+    }
     
     FIRAuth.auth()?.signIn(withEmail: email, password: password, completion: { (user, error) in
       
       if error != nil {
-       // print(error ?? "Can't Sign In")
+        // print(error ?? "Can't Sign In")
         return
       }
       self.messageController?.fetchUserAndSetupNavBarTitle()
@@ -179,7 +178,7 @@ class LoginController: UIViewController {
     imageView.translatesAutoresizingMaskIntoConstraints = false
     return imageView
   }()
-
+  
   
   // MARK: - создаем SegmentedControl
   let loginRegisteredSegmentController : UISegmentedControl = {
@@ -213,7 +212,6 @@ class LoginController: UIViewController {
     passwordTextFieldHeightAnchor = passwordTextField.heightAnchor.constraint(equalTo: inputsContainerView.heightAnchor, multiplier: loginRegisteredSegmentController.selectedSegmentIndex == 0 ? 1/2 : 1/3)
     passwordTextFieldHeightAnchor?.isActive = true
     
-    
   }
   
   // MARK: - настраиваем Anchor для нашей выше созданной кнопки
@@ -236,7 +234,6 @@ class LoginController: UIViewController {
     profileImageView.heightAnchor.constraint(equalToConstant: 150).isActive = true
   }
   
-  
   // MARK: - настраиваем Anchor для нашго выше созданнго SegmentControl
   func setuploginRegisterSegmentControl() {
     // нужны ширина, высота, x, y constraints
@@ -245,7 +242,6 @@ class LoginController: UIViewController {
     loginRegisteredSegmentController.widthAnchor.constraint(equalTo: inputsContainerView.widthAnchor, multiplier: 1).isActive = true
     loginRegisteredSegmentController.heightAnchor.constraint(equalToConstant: 36).isActive = true
   }
-  
   
   override func viewDidLoad() {
     super.viewDidLoad()

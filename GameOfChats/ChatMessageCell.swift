@@ -7,10 +7,56 @@
  //
  
  import UIKit
+ import AVFoundation
  
  class ChatMessageCell: UICollectionViewCell {
   
   var chatLogController : ChatLogController?
+  var message : Message?
+  
+  let activityIndicatorView : UIActivityIndicatorView = {
+    
+    let aiv = UIActivityIndicatorView(activityIndicatorStyle: .whiteLarge)
+    aiv.translatesAutoresizingMaskIntoConstraints = false
+    aiv.hidesWhenStopped = true
+    return aiv
+    
+  }()
+  
+  let playVideoButton : UIButton = {
+    
+    let button = UIButton(type: .system)
+    button.translatesAutoresizingMaskIntoConstraints = false
+    let image = UIImage(named: "play")
+    button.tintColor = UIColor.white
+    button.setImage(image, for: .normal)
+    button.addTarget(self, action: #selector(handlePlayVideo), for: .touchUpInside)
+    return button
+    
+  }()
+  
+  var playerLayer : AVPlayerLayer?
+  var player : AVPlayer?
+  
+  func handlePlayVideo() {
+    if let videoUrlString = message?.videoUrl, let url = URL(string: videoUrlString) {
+      player = AVPlayer(url: url)
+      playerLayer = AVPlayerLayer(player: player)
+      playerLayer?.frame = bubbleView.bounds
+      bubbleView.layer.addSublayer(playerLayer!)
+      player?.play()
+      activityIndicatorView.startAnimating()
+      playVideoButton.isHidden = true
+    }
+  }
+  
+  // когда проигрывается видео и пролистывается чат убирает playerLayer с Superlayer и убирает баги с отобажением, а также останавиливает воспроизведение видео и аудио и кручение activityIndicatorView
+  override func prepareForReuse() {
+    super.prepareForReuse()
+    playerLayer?.removeFromSuperlayer()
+    player?.pause()
+    activityIndicatorView.stopAnimating()
+  }
   
   let textview : UITextView = {
     
@@ -50,7 +96,7 @@
     let imageView = UIImageView()
     imageView.layer.cornerRadius = 16
     imageView.layer.masksToBounds = true
-    imageView.contentMode = .scaleAspectFill 
+    imageView.contentMode = .scaleAspectFill
     imageView.translatesAutoresizingMaskIntoConstraints = false
     imageView.isUserInteractionEnabled = true
     
@@ -59,13 +105,19 @@
     return imageView
   }()
   
+  // зум анимация для тапа по картинке
   func handleZoomTap(tapGesture : UITapGestureRecognizer) {
+    // если это видео, то не зумим
+    if message?.videoUrl != nil {
+      return
+    }
+    
     if let imageView = tapGesture.view as? UIImageView {
       self.chatLogController?.performZoomInForStartingImageView(startingImageView: imageView) // метод делегата
     }
     
   }
-   
+  
   var bubbleWidthAnchor : NSLayoutConstraint?
   var bubbleViewRightAnchor : NSLayoutConstraint?
   var bubbleViewLeftAnchor : NSLayoutConstraint?
@@ -86,6 +138,19 @@
     messageImageView.widthAnchor.constraint(equalTo: bubbleView.widthAnchor).isActive = true
     messageImageView.heightAnchor.constraint(equalTo: bubbleView.heightAnchor).isActive = true
     
+    bubbleView.addSubview(playVideoButton)
+    // нужны ширина, высота, x, y constraints
+    playVideoButton.centerXAnchor.constraint(equalTo: bubbleView.centerXAnchor).isActive = true
+    playVideoButton.centerYAnchor.constraint(equalTo: bubbleView.centerYAnchor).isActive = true
+    playVideoButton.widthAnchor.constraint(equalToConstant: 50).isActive = true
+    playVideoButton.heightAnchor.constraint(equalToConstant: 50).isActive = true
+    
+    bubbleView.addSubview(activityIndicatorView)
+    // нужны ширина, высота, x, y constraints
+    activityIndicatorView.centerXAnchor.constraint(equalTo: bubbleView.centerXAnchor).isActive = true
+    activityIndicatorView.centerYAnchor.constraint(equalTo: bubbleView.centerYAnchor).isActive = true
+    activityIndicatorView.widthAnchor.constraint(equalToConstant: 50).isActive = true
+    activityIndicatorView.heightAnchor.constraint(equalToConstant: 50).isActive = true
     
     // нужны ширина, высота, x, y constraints
     //textview.rightAnchor.constraint(equalTo: self.rightAnchor).isActive = true
@@ -114,11 +179,9 @@
     profileImageView.widthAnchor.constraint(equalToConstant: 32).isActive = true
     profileImageView.heightAnchor.constraint(equalToConstant: 32).isActive = true
     
-    
   }
   
   required init?(coder aDecoder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
   }
-  
  }

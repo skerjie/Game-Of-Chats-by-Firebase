@@ -46,15 +46,6 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     }, withCancel: nil )
   }
   
-  // создаем TextField чтобы получить доступ к нему для методов
-  lazy var inputTextField: UITextField = {
-    let textField = UITextField()
-    textField.placeholder = "Enter message..."
-    textField.translatesAutoresizingMaskIntoConstraints = false
-    textField.delegate = self
-    return textField
-  }()
-  
   override func viewDidLoad() {
     super.viewDidLoad()
     
@@ -71,67 +62,12 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     
   }
   
-  lazy var inputContainerView: UIView = {
-    let containerView = UIView()
-    containerView.frame = CGRect(x: 0, y: 0, width: self.view.frame.width, height: 50)
-    containerView.backgroundColor = UIColor.white
+  lazy var inputContainerView: ChatInputContainerView = {
     
+    let chatInputContainerView = ChatInputContainerView(frame: CGRect(x: 0, y: 0, width: self.view.frame.width, height: 50))
+    chatInputContainerView.chatLogController = self
+    return chatInputContainerView
     
-    let uploadImageView = UIImageView()
-    uploadImageView.image = UIImage(named: "addImage")
-    uploadImageView.isUserInteractionEnabled = true
-    uploadImageView.translatesAutoresizingMaskIntoConstraints = false
-    uploadImageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleUploadTap)))
-    containerView.addSubview(uploadImageView)
-    
-    // нужны ширина, высота, x, y constraints
-    uploadImageView.leftAnchor.constraint(equalTo: containerView.leftAnchor).isActive = true
-    uploadImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
-    uploadImageView.widthAnchor.constraint(equalToConstant: 44).isActive = true
-    uploadImageView.heightAnchor.constraint(equalToConstant: 44).isActive = true
-    
-    
-    let sendButton = UIButton(type: .system)
-    sendButton.setTitle("Send", for: .normal)
-    sendButton.translatesAutoresizingMaskIntoConstraints = false
-    sendButton.addTarget(self, action: #selector(handleSend), for: .touchUpInside)
-    
-    containerView.addSubview(sendButton)
-    
-    // нужны ширина, высота, x, y constraints
-    sendButton.rightAnchor.constraint(equalTo: containerView.rightAnchor).isActive = true
-    sendButton.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
-    sendButton.widthAnchor.constraint(equalToConstant: 80).isActive = true
-    sendButton.heightAnchor.constraint(equalTo: containerView.heightAnchor).isActive = true
-    //
-    //
-    //    let inputTextField = UITextField()
-    //    inputTextField.placeholder = "Enter message..."
-    //    inputTextField.translatesAutoresizingMaskIntoConstraints = false
-    
-    containerView.addSubview(self.inputTextField)
-    
-    // нужны ширина, высота, x, y constraints
-    self.inputTextField.leftAnchor.constraint(equalTo: uploadImageView.rightAnchor, constant: 8).isActive = true
-    self.inputTextField.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
-    self.inputTextField.rightAnchor.constraint(equalTo: sendButton.leftAnchor).isActive = true
-    self.inputTextField.heightAnchor.constraint(equalTo: containerView.heightAnchor).isActive = true
-    
-    
-    let separatorLineView = UIView()
-    separatorLineView.backgroundColor = UIColor(red: 220/255, green: 220/255, blue: 220/255, alpha: 1)
-    separatorLineView.translatesAutoresizingMaskIntoConstraints = false
-    
-    containerView.addSubview(separatorLineView)
-    
-    // нужны ширина, высота, x, y constraints
-    separatorLineView.leftAnchor.constraint(equalTo: containerView.leftAnchor).isActive = true
-    separatorLineView.topAnchor.constraint(equalTo: containerView.topAnchor).isActive = true
-    separatorLineView.widthAnchor.constraint(equalTo: containerView.widthAnchor).isActive = true
-    separatorLineView.heightAnchor.constraint(equalToConstant: 1).isActive = true
-    
-    
-    return containerView
   }()
   
   // обработка нажатия на картинку с вызовом pickerController
@@ -154,7 +90,7 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
       
       // выбираем видео
       handleVideoSelectedForUrl(url: videoUrl)
-
+      
     } else {
       
       // выбираем картинку
@@ -170,13 +106,13 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     let uploadTask = FIRStorage.storage().reference().child("message_movies").child(fileName).putFile(url, metadata: nil, completion: { (metadata, error) in
       
       if error != nil {
-        print(error ?? "Error")
+        // print(error ?? "Error")
         return
       }
       
       if let videoUrl = metadata?.downloadURL()?.absoluteString {
         //print(videoUrl)
-          //
+        //
         if let thumbnailImage = self.thumbnailImageForFileUrl(fileUrl: url) {
           
           self.uploadToFirebaseStorageUsingImage(image: thumbnailImage, completion: { (imageUrl) in
@@ -212,7 +148,7 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
       let thumbnailCGImage = try imageGenerator.copyCGImage(at: CMTimeMake(1, 60), actualTime: nil)
       return UIImage(cgImage: thumbnailCGImage)
     } catch let err {
-      print(err)
+      //print(err)
     }
     
     return nil
@@ -242,7 +178,7 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
       ref.put(uploadData, metadata: nil, completion: { (metadata, error) in
         
         if error != nil {
-          print("Failed Upload \(error)")
+          // print("Failed Upload \(error)")
           return
         }
         
@@ -318,6 +254,7 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     cell.chatLogController = self // делегат
     
     let message = messages[indexPath.item]
+    cell.message = message
     cell.textview.text = message.text
     
     setupCell(cell: cell, message: message)
@@ -330,6 +267,15 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
       cell.bubbleWidthAnchor?.constant = 200
       cell.textview.isHidden = true
     }
+    // проверка если сообщение картинка кнопка проигрывания видео будет скрыта, если видео то активна
+    if message.videoUrl != nil {
+      cell.playVideoButton.isHidden = false
+    } else {
+      cell.playVideoButton.isHidden = true
+    }
+    
+    // другая  запись
+    //cell.playVideoButton.isHidden = message.videoUrl == nil
     
     return cell
   }
@@ -402,7 +348,7 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
   
   // обработка нажатия кнопки Send
   func handleSend() {
-    let properties = ["text": inputTextField.text!]
+    let properties = ["text": inputContainerView.inputTextField.text!]
     sendMessageWithProperties(properties: properties as [String : AnyObject])
   }
   
@@ -425,11 +371,11 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
     
     childRef.updateChildValues(values) { (error, ref) in
       if error != nil {
-        print(error ?? "Error")
+        // print(error ?? "Error")
         return
       }
       
-      self.inputTextField.text = nil
+      self.inputContainerView.inputTextField.text = nil
       
       let userMessagesRef = FIRDatabase.database().reference().child("user-messages").child(fromId).child(toId)
       
@@ -439,12 +385,6 @@ class ChatLogController : UICollectionViewController, UITextFieldDelegate, UICol
       let recipientUserMessagesRef = FIRDatabase.database().reference().child("user-messages").child(toId).child(fromId)
       recipientUserMessagesRef.updateChildValues([messageId: 1])
     }
-  }
-  
-  func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-    inputTextField.resignFirstResponder() // кнопкой return  клавиатуры можно ее отпустить
-    handleSend()
-    return true
   }
   
   var startFrame : CGRect?

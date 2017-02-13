@@ -16,7 +16,6 @@ class MessageController: UITableViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    
     // MARK: - создаем кнопку на NavigationController слева
     navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Logout", style: .plain, target: self, action: #selector(handleLogout))
     
@@ -29,7 +28,39 @@ class MessageController: UITableViewController {
     tableView.register(UserCell.self, forCellReuseIdentifier: cellId)
     
     // observeMessages()
-
+    
+    tableView.allowsMultipleSelectionDuringEditing = true
+    
+  }
+  
+  // позволяем редактировать столбцы
+  override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+    return true
+  }
+  
+  override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
+    guard let uid = FIRAuth.auth()?.currentUser?.uid else { return }
+    
+    let message = messages[indexPath.row]
+    if let chatPartnerId = message.chatPartnerId() {
+      FIRDatabase.database().reference().child("user-messages").child(uid).child(chatPartnerId).removeValue(completionBlock: { (error, ref) in
+        
+        if error != nil {
+          //print(error ?? "Failed to delete message")
+          return
+        }
+        
+        // правильное удаление из словаря сообщений
+        self.messagesDictionary.removeValue(forKey: chatPartnerId)
+        self.atempReloadOfTable()
+        
+        //        // не безопасное удаление удаляет не из правильного места, на самом деле сообщения не в массиве, а в словаре
+        //        self.messages.remove(at: indexPath.row)
+        //        self.tableView.deleteRows(at: [indexPath], with: .automatic)
+        
+      })
+    }
+    
   }
   
   var messages = [Message]()
@@ -45,13 +76,21 @@ class MessageController: UITableViewController {
       let userId = snapshot.key
       FIRDatabase.database().reference().child("user-messages").child(uid).child(userId).observe(.childAdded, with: { (snapshot) in
         
-       // print(snapshot)
+        // print(snapshot)
         
         let messageId = snapshot.key
         self.fetchMessageWithMessageId(messageId: messageId)
-
+        
       }, withCancel: nil)
-
+      
+    }, withCancel: nil)
+    
+    ref.observe(.childRemoved, with: { (snapshot) in
+      
+      // удаляет сообщение из приложение если напрямую из firebase было удалено
+      self.messagesDictionary.removeValue(forKey: snapshot.key)
+      self.atempReloadOfTable()
+      
     }, withCancel: nil)
     
   }
@@ -63,7 +102,7 @@ class MessageController: UITableViewController {
       
       if let dictionary = snapshot.value as? [String : AnyObject] {
         let message = Message(dictionary: dictionary)
-         
+        
         if let chatPartnerId = message.chatPartnerId() {
           self.messagesDictionary[chatPartnerId] = message
         }
@@ -79,7 +118,7 @@ class MessageController: UITableViewController {
     self.timer?.invalidate()
     self.timer = Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(self.handleReloadTable), userInfo: nil, repeats: false)
   }
-
+  
   var timer : Timer?
   
   // функция обработчика таймера, для обновления таблицы
@@ -95,33 +134,7 @@ class MessageController: UITableViewController {
     }
     
   }
-  
-  //  func observeMessages() {
-  //    let ref = FIRDatabase.database().reference().child("messages")
-  //    ref.observeSingleEvent(of: .childAdded, with: { (snapshot) in
-  //
-  //      if let dictionary = snapshot.value as? [String : AnyObject] {
-  //        let message = Message()
-  //        message.setValuesForKeys(dictionary)
-  //        // self.messages.append(message)
-  //
-  //        if let toId = message.toId {
-  //          self.messagesDictionary[toId] = message
-  //          self.messages = Array(self.messagesDictionary.values)
-  //          self.messages.sort(by: { (mes1, mes2) -> Bool in
-  //            return (mes1.timeStamp?.intValue)! > (mes2.timeStamp?.intValue)!
-  //          })
-  //        }
-  //
-  //        // чтобы приложение не упало в фоновом потоке делаем асинхронный запрос
-  //        DispatchQueue.main.async {
-  //          self.tableView.reloadData()
-  //        }
-  //      }
-  //
-  //    }, withCancel: nil)
-  //  }
-  
+
   override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
     return messages.count
   }
@@ -200,9 +213,7 @@ class MessageController: UITableViewController {
     
     let titleView = UIView()
     titleView.frame = CGRect(x: 0, y: 0, width: 100, height: 40)
-    //titleView.backgroundColor = UIColor.red
-    
-    
+
     let containerVIew = UIView()
     containerVIew.translatesAutoresizingMaskIntoConstraints = false
     titleView.addSubview(containerVIew)
@@ -212,6 +223,7 @@ class MessageController: UITableViewController {
     profileImageView.contentMode = .scaleAspectFill
     profileImageView.layer.cornerRadius = 20
     profileImageView.clipsToBounds = true
+    
     if let profileImageUrl = user.profileImageUrl {
       profileImageView.loadImageUsingCacheWithUrlString(urlString: profileImageUrl)
     }
@@ -260,7 +272,7 @@ class MessageController: UITableViewController {
     do {
       try FIRAuth.auth()?.signOut() // проверяем вышшел ли пользователь
     } catch let logoutError{
-      print(logoutError)
+      //print(logoutError)
     }
     
     let loginController = LoginController()
